@@ -1,32 +1,51 @@
 name: Build Kivy APK
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # τρέχει μόνο όταν το ζητήσεις χειροκίνητα
 
 jobs:
   build-apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install system deps
         run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-pip openjdk-17-jdk unzip
-          pip install --upgrade pip Cython==0.29.36 buildozer==1.5.0 python-for-android==2024.1.21
+          sudo apt-get update -y
+          sudo apt-get install -y openjdk-17-jdk zip unzip libffi-dev libssl-dev liblzma-dev
 
-      - name: Build APK
+      - name: Install pip & tools
         run: |
-          buildozer android debug
+          python -m pip install --upgrade pip
+          pip install Cython==0.29.36 buildozer==1.5.0 python-for-android==2024.1.21
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v3
+      - name: Pre-accept SDK & install platforms/build-tools
+        run: |
+          yes | buildozer android update
+          ANDROID_SDK="$HOME/.buildozer/android/platform/android-sdk"
+          if [ -x "$ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" ]; then
+            yes | "$ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+            yes | "$ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager" "platforms;android-31" "build-tools;31.0.0"
+          fi
+
+      - name: Build APK (debug)
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+          ANDROIDAPI: '31'
+          ANDROIDMINAPI: '21'
+        run: |
+          buildozer -v android debug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4   # <-- Η κρίσιμη αλλαγή!
         with:
-          name: revg-apk
+          name: REVG-APK
           path: bin/*.apk
+          if-no-files-found: error
