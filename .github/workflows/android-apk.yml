@@ -1,15 +1,14 @@
 name: Build Kivy APK
 
 on:
-  workflow_dispatch:   # τρέχει ΜΟΝΟ χειροκίνητα από το Actions
+  workflow_dispatch:   # Τρέχει ΜΟΝΟ χειροκίνητα
 
 jobs:
   build-apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04   # <- σταθερός runner για buildozer/p4a
 
     steps:
       - name: Checkout repo
-      # φέρνει ΟΛΑ τα αρχεία (app/, buildozer.spec, κλπ.)
         uses: actions/checkout@v4
 
       - name: Set up Python 3.10
@@ -20,10 +19,9 @@ jobs:
       - name: Install system deps (JDK, tools)
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y \
-            openjdk-17-jdk zip unzip \
-            build-essential libssl-dev libffi-dev zlib1g-dev \
-            libncurses5 libtinfo5
+          sudo apt-get install -y --no-install-recommends \
+            openjdk-17-jdk zip unzip build-essential \
+            libssl-dev libffi-dev zlib1g-dev
           java -version
 
       - name: Install pip & tools (pinned)
@@ -31,21 +29,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install "Cython==0.29.36" wheel
           pip install "buildozer==1.5.0" "python-for-android==2024.1.21"
-          # Προαιρετικά (δεν είναι υποχρεωτικό για το build):
-          # pip install kivy==2.2.1 kivymd==1.1.1
 
       - name: Show versions
         run: |
           python -V
           buildozer version || true
 
-      # Bootstrap για να κατεβάσει SDK/NDK/Gradle δομές μία φορά
       - name: Bootstrap Buildozer (android update)
         run: |
           yes | buildozer android update || true
 
-      # Αποδοχή αδειών + εγκατάσταση platform/build-tools (αν υπάρχει sdkmanager)
-      - name: Accept Android SDK licenses + make sure platform/build-tools exist
+      - name: Accept Android SDK licenses + ensure platform/build-tools
         env:
           ANDROIDSDK: ${{ runner.home }}/.buildozer/android/platform/android-sdk
         run: |
@@ -53,23 +47,20 @@ jobs:
             yes | "$ANDROIDSDK/tools/bin/sdkmanager" --licenses || true
             "$ANDROIDSDK/tools/bin/sdkmanager" --install "platforms;android-31" "build-tools;31.0.0" || true
           else
-            echo "sdkmanager not found yet (θα το χειριστεί το buildozer στο επόμενο βήμα)."
+            echo "sdkmanager not found yet (θα εγκατασταθεί στο επόμενο βήμα από το buildozer)."
           fi
 
       - name: Build APK (debug)
         env:
-          # προαιρετικά, αλλά βοηθά σε σταθερότητα
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
           ANDROIDAPI: "31"
           ANDROIDMINAPI: "21"
         run: |
-          # Το yes απαντάει αυτόματα σε ό,τι ρωτήσει (licenses κ.λπ.)
           yes | buildozer -v android debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: REVG-APK
-          path: |
-            bin/*.apk
+          path: bin/*.apk
           if-no-files-found: error
