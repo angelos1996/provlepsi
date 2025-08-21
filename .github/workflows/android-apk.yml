@@ -28,11 +28,10 @@ jobs:
 
       - name: Build APK
         run: |
-          cd app
           buildozer --accept-sdk-license android debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: revg-app-debug-apk
-          path: app/bin/*.apk
+          path: bin/*.apk
