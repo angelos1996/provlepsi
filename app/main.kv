@@ -1,0 +1,81 @@
+WindowManager:
+    MonthScreen:
+    TaxScreen:
+    HoursScreen:
+    ResultScreen:
+
+<MonthScreen>:
+    name: "month"
+    BoxLayout:
+        orientation: "vertical"
+        spacing: 10
+        padding: 20
+        Spinner:
+            id: month_spinner
+            text: "Ιανουάριος"
+            values: ["Ιανουάριος", "Φεβρουάριος", "Μάρτιος", "Απρίλιος", "Μάιος", "Ιούνιος", "Ιούλιος", "Αύγουστος", "Σεπτέμβριος", "Οκτώβριος", "Νοέμβριος", "Δεκέμβριος"]
+        Button:
+            text: "Επόμενο"
+            on_release:
+                root.manager.current = "tax"
+
+<TaxScreen>:
+    name: "tax"
+    BoxLayout:
+        orientation: "vertical"
+        spacing: 10
+        padding: 20
+        Spinner:
+            id: tax_spinner
+            text: "I"
+            values: ["I", "II", "III", "IV", "V", "VI"]
+        ToggleButton:
+            id: church_toggle
+            text: "Εκκλησιαστικός Φόρος"
+        Button:
+            text: "Επόμενο"
+            on_release:
+                root.manager.current = "hours"
+
+<HoursScreen>:
+    name: "hours"
+    BoxLayout:
+        orientation: "vertical"
+        spacing: 10
+        padding: 20
+        TextInput:
+            id: total_hours
+            hint_text: "Συνολικές ώρες"
+        TextInput:
+            id: night_hours
+            hint_text: "Ώρες νύχτας"
+        TextInput:
+            id: sat_hours
+            hint_text: "Ώρες Σαββάτου"
+        TextInput:
+            id: sun_hours
+            hint_text: "Ώρες Κυριακής"
+        TextInput:
+            id: hol_hours
+            hint_text: "Ώρες Αργίας"
+        Button:
+            text: "Δείξε αποτελέσματα"
+            on_release:
+                app.calculate_salary()
+
+<ResultScreen>:
+    name: "result"
+    BoxLayout:
+        orientation: "vertical"
+        spacing: 10
+        padding: 20
+        Label:
+            text: "Μικτά: " + root.gross_text
+        Label:
+            text: "Καθαρά: " + root.net_text
+        Label:
+            text: root.details_text
+        Button:
+            text: "Νέα Πρόβλεψη"
+            on_release:
+                root.manager.current = "month"
