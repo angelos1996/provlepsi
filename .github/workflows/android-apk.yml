@@ -1,66 +1,38 @@
-name: Build Kivy APK
+name: Build APK (debug)
 
 on:
-  workflow_dispatch:   # Τρέχει ΜΟΝΟ χειροκίνητα
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  build-apk:
-    runs-on: ubuntu-22.04   # <- σταθερός runner για buildozer/p4a
+  build:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: 3.10
 
-      - name: Install system deps (JDK, tools)
+      - name: Install dependencies
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends \
-            openjdk-17-jdk zip unzip build-essential \
-            libssl-dev libffi-dev zlib1g-dev
-          java -version
+          sudo apt update
+          sudo apt install -y build-essential git zip unzip openjdk-17-jdk python3-pip
+          pip install --upgrade pip
+          pip install buildozer
 
-      - name: Install pip & tools (pinned)
+      - name: Build APK
         run: |
-          python -m pip install --upgrade pip
-          pip install "Cython==0.29.36" wheel
-          pip install "buildozer==1.5.0" "python-for-android==2024.1.21"
-
-      - name: Show versions
-        run: |
-          python -V
-          buildozer version || true
-
-      - name: Bootstrap Buildozer (android update)
-        run: |
-          yes | buildozer android update || true
-
-      - name: Accept Android SDK licenses + ensure platform/build-tools
-        env:
-          ANDROIDSDK: ${{ runner.home }}/.buildozer/android/platform/android-sdk
-        run: |
-          if [ -x "$ANDROIDSDK/tools/bin/sdkmanager" ]; then
-            yes | "$ANDROIDSDK/tools/bin/sdkmanager" --licenses || true
-            "$ANDROIDSDK/tools/bin/sdkmanager" --install "platforms;android-31" "build-tools;31.0.0" || true
-          else
-            echo "sdkmanager not found yet (θα εγκατασταθεί στο επόμενο βήμα από το buildozer)."
-          fi
-
-      - name: Build APK (debug)
-        env:
-          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
-          ANDROIDAPI: "31"
-          ANDROIDMINAPI: "21"
-        run: |
-          yes | buildozer -v android debug
+          cd app
+          buildozer --accept-sdk-license android debug
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: REVG-APK
-          path: bin/*.apk
-          if-no-files-found: error
+          name: revg-app-debug-apk
+          path: app/bin/*.apk
